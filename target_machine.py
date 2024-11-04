@@ -1,54 +1,5 @@
 from typing import List
-import pyvbox  # Asegúrate de que pyvbox esté instalado
-
-class TargetMachine:
-    def __init__(self, operating_system: str, vulnerabilities: List[str]):
-        """Inicializa la máquina objetivo"""
-        self.__operating_system = operating_system  # Encapsulamos el sistema operativo
-        self.__vulnerabilities = vulnerabilities  # Encapsulamos las vulnerabilidades
-
-    # Getter para obtener el sistema operativo
-    def get_operating_system(self):
-        return self.__operating_system
-
-    # Setter para modificar el sistema operativo (opcional)
-    def set_operating_system(self, operating_system: str):
-        if isinstance(operating_system, str):
-            self.__operating_system = operating_system
-
-    # Getter para obtener las vulnerabilidades
-    def get_vulnerabilities(self):
-        return self.__vulnerabilities
-
-    # Setter para modificar las vulnerabilidades
-    def set_vulnerabilities(self, vulnerabilities: List[str]):
-        if isinstance(vulnerabilities, list):
-            self.__vulnerabilities = vulnerabilities
-
-
-class Vulnerability:
-    def __init__(self, name: str, description: str):
-        self.__name = name  # Atributo privado
-        self.__description = description  # Atributo privado
-
-    # Getter para obtener el nombre
-    def get_name(self):
-        return self.__name
-
-    # Setter para modificar el nombre (opcional)
-    def set_name(self, name: str):
-        if isinstance(name, str):
-            self.__name = name
-
-    # Getter para obtener la descripción
-    def get_description(self):
-        return self.__description
-
-    # Setter para modificar la descripción (opcional)
-    def set_description(self, description: str):
-        if isinstance(description, str):
-            self.__description = description
-
+import pyvbox 
 
 class VirtualMachineManager:
     def __init__(self):
