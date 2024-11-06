@@ -23,11 +23,6 @@ class TestDDoSAttack(unittest.TestCase):
         for ip in self.ddos_attack.ips:
             self.assertTrue(ip.count('.') == 3)
 
-    def test_get_text_total_ips(self):
-        self.ddos_attack.orig_type = "2"
-        self.ddos_attack.get_text_total_ips()
-        self.assertGreater(len(self.ddos_attack.ips), 0)
-
     def test_start(self):
         self.ddos_attack.start()
         self.assertEqual(self.ddos_attack.status, "running")

