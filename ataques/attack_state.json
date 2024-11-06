@@ -1,0 +1,13 @@
+{
+    "type": "DDoS",
+    "status": "running",
+    "targets": [
+        "http://testphp.vulnweb.com"
+    ],
+    "params": {
+        "dst_url": "http://testphp.vulnweb.com",
+        "n_ips": 10,
+        "n_msg": 5,
+        "threads": 4
+    }
+}

