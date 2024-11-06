@@ -5,3 +5,4 @@ virtualbox from oracle
 seleneum
 sqlmap
 requests
+fpdf

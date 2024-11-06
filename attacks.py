@@ -192,12 +192,16 @@ class PhishingAttack(Attack):
 
 
 if __name__ == '__main__':
-    #* Crear instancias de la clase esa importada
+    #! DESCOMENTEN LAS PARTES Q QUIERAN EJECUTAR
+    pass
+
+    #* Crear instancias de la clase esa de las maquinas virtuales
     # Después de como 1 día por fin me di cuenta q tenia que instalar virtualbox como programa y no el SDK :c
     # Ahora si puedo llamar la función pepe c:
+    # Lo peor es que ahora me di cuenta que no teniamos que usar maquinas virtuales
 
-    vm_manager = VirtualMachineManager()
-    vm_manager.pepe()
+    #? vm_manager = VirtualMachineManager()
+    #? vm_manager.pepe()
 
     #* Ejemplo de phising
     # target_emails = ["manelguvi100@gmail.com", "manelguvi200@gmail.com"]
@@ -212,11 +216,11 @@ if __name__ == '__main__':
     # sql_injection_attack.start()
 
     #* Ejemplo de DDoS
-    target_url = "http://example.com"
-    n_ips = 10
-    n_msg = 5
-    interface = "eth0"
-    orig_type = "1"  # or "2" depending on your requirement
-    threads = 4  # specify the number of threads you want to use
-    ddos_attack = DDoSAttack(target_url, n_ips, n_msg, orig_type, threads)
-    ddos_attack.start()
+    # target_url = "http://testphp.vulnweb.com"
+    # n_ips = 10
+    # n_msg = 5
+    # interface = "eth0"
+    # orig_type = "1"  
+    # threads = 4 
+    # ddos_attack = DDoSAttack(target_url, n_ips, n_msg, orig_type, threads)
+    # ddos_attack.start()
