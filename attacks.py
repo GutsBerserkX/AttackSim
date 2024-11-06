@@ -211,7 +211,7 @@ def load_attack_state() -> Attack:
 
             if attack_type == AttackType.DDoS:
                 return DDoSAttack(
-                    target_url=targets[0],
+                    dst_url=targets[0],
                     n_ips=attack_data["params"]["n_ips"],
                     n_msg=attack_data["params"]["n_msg"],
                     threads=attack_data["params"]["threads"]
