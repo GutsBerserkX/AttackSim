@@ -22,7 +22,7 @@ class VirtualMachineManager:
             print(f"Error al crear la máquina virtual: {e}")
             return None
 
-    def start_vm(self, vm: pyvbox.Machine):
+    def start_vm(self, vm: pyvbox.VirtualBox):
         """Inicia la máquina virtual"""
         session = pyvbox.Session()
         try:
@@ -32,7 +32,7 @@ class VirtualMachineManager:
         except Exception as e:
             print(f"Error al iniciar la máquina virtual: {e}")
 
-    def stop_vm(self, vm: pyvbox.Machine):
+    def stop_vm(self, vm: pyvbox.VirtualBox):
         """Detiene la máquina virtual"""
         session = pyvbox.Session()
         try:
@@ -50,6 +50,9 @@ class VirtualMachineManager:
         print("Máquinas virtuales creadas:")
         for vm in self.virtual_machines:
             print(f" - {vm.name}")
+
+    def pepe(self):
+        print("pepe")
 
 
 # Ejemplo de uso de las clases (descomentar si se desea ejecutar)
