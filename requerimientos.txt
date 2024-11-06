@@ -1,8 +1,5 @@
 pip install scapy
-pip install pyvbox
-python -m pip install virtualbox
-virtualbox from oracle
 seleneum
 sqlmap
 requests
-fpdf
+enum
