@@ -6,8 +6,8 @@
     ],
     "params": {
         "dst_url": "http://testphp.vulnweb.com",
-        "n_ips": 10,
-        "n_msg": 5,
-        "threads": 4
+        "n_ips": 20,
+        "n_msg": 20,
+        "threads": 5
     }
 }

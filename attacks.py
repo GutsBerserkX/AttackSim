@@ -13,6 +13,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 import subprocess
 import json
+from users import User
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
@@ -40,6 +41,10 @@ class Attack(ABC):
     def set_targets(self, targets) -> List:
         if isinstance(targets, list):
             self.__targets = targets
+    
+    @abstractmethod
+    def get_target_url(self) -> str:  
+        pass
 
     @abstractmethod
     def start(self):
@@ -63,6 +68,9 @@ class DDoSAttack(Attack):
         self.ips = [f"192.168.1.{i}" for i in range(1, n_ips + 1)]
 
         self.get_random_ips()
+    
+    def get_target_url(self) -> str:
+        return self.dst_url
 
     def get_random_ips(self) -> None:
         for _ in range(int(self.n_ips)):
@@ -107,6 +115,9 @@ class SQLInjectionAttack(Attack):
         super().__init__(AttackType.SQL_INJECTION, [target_url])
         self.__target_url = target_url
         self.__payload = payload
+    def get_target_url(self):
+        return self.__target_url
+    
 
     def start(self) -> None:
         self.status = "running"
@@ -131,7 +142,10 @@ class PhishingAttack(Attack):
         self.__target_emails = target_emails
         self.__template = template
         self.driver = webdriver.Chrome()
-
+    
+    def get_target_url(self) -> str:  
+        return ", ".join(self.__target_emails)
+    
     def start(self) -> None:
         self.status = "running"
         print(f"Enviando correos de phishing a: {', '.join(self.__target_emails)} con la plantilla: {self.__template}")
@@ -171,34 +185,37 @@ class PhishingAttack(Attack):
         self.driver.quit()
         print("Ataque de phishing detenido.")
 
-def save_attack_state(attack: Attack) -> None:
+def save_attack_state(attack: Attack, user: User) -> None:
     attack_data = {
+        "user": user.username,
         "type": attack.get_attack_type().value,
         "status": attack.status,
         "targets": attack.get_targets(),
-        "params": {}
+        "params": {},
+        "time": time.strftime("%Y-%m-%d %H:%M:%S")
     }
+    
     if isinstance(attack, DDoSAttack):
         attack_data["params"] = {
-            "dst_url": attack.dst_url,
+            "dst_url": attack.get_target_url(),  # Cambiado aquí
             "n_ips": attack.n_ips,
             "n_msg": attack.n_msg,
             "threads": attack.threads
         }
     elif isinstance(attack, SQLInjectionAttack):
         attack_data["params"] = {
-            "target_url": attack._SQLInjectionAttack__target_url,
+            "target_url": attack.get_target_url(),  # Cambiado aquí
             "payload": attack._SQLInjectionAttack__payload
         }
     elif isinstance(attack, PhishingAttack):
         attack_data["params"] = {
-            "target_emails": attack._PhishingAttack__target_emails,
+            "target_emails": attack.get_target_url(),  # Cambiado aquí
             "template": attack._PhishingAttack__template
         }
     
-    with open("./ataques/attack_state.json", "w") as file:
+    with open(f"./ataques/{user.username}_attack_state.json", "w") as file:
         json.dump(attack_data, file, indent=4)
-    print(f"Estado del ataque guardado: {attack_data}")
+    print(f"Estado del ataque guardado para {user.username}: {attack_data}")
 
 
 def load_attack_state() -> Attack:
