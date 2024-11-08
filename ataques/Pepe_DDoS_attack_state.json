@@ -6,7 +6,7 @@
         "http://testphp.vulnweb.com"
     ],
     "params": {},
-    "time": "2024-11-08 00:14:19",
-    "duration": 3.1632087230682373,
+    "time": "2024-11-08 00:21:48",
+    "duration": 3.0494537353515625,
     "result": "Tiempo: 3 segundos, Paquetes: 1, Velocidad: 0 p/s"
 }
